@@ -123,8 +123,10 @@
     }
 
     function unlockApp() {
-      document.getElementById('gumroad-lock').classList.add('unlocked');
-    }
+  document.getElementById('gumroad-lock').classList.add('unlocked');
+  // FORCE THE BOARD TO RENDER ONCE UNLOCKED
+  renderDashboard(); 
+  }
 
     function checkExistingLicense() {
       const savedKey = localStorage.getItem('gumroad_valid_key');
