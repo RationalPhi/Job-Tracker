@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Strategic Target Board</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+    :root {
+      /* Deep Obsidian Theme */
+      --bg:     #06090E;
+      --bg2:    #0D121B;
+      --bg3:    #151C26;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(88, 166, 255, 0.4);
+      --text:   #F0F6FC;
+      --sub:    #8B949E;
+      --accent: #58A6FF;
+      --accent-glow: rgba(88, 166, 255, 0.15);
+      --green:  #2EA043;
+      --yellow: #D29922;
+      --red:    #F85149;
+      --li:     #0A66C2;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'IBM Plex Sans', sans-serif;
+      --r: 8px;
+      --del-w: 32px;   
+      --del-gap: 12px;  
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      padding: 2.5rem 2.5rem 2.5rem calc(2.5rem + var(--del-w) + var(--del-gap));
+      background-image: 
+        radial-gradient(rgba(255,255,255,.02) 1px, transparent 1px),
+        radial-gradient(rgba(255,255,255,.015) 1px, transparent 1px);
+      background-size: 24px 24px;
+      background-position: 0 0, 12px 12px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Header & Metrics ── */
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+      gap: 20px;
+    }
+    
+    .title-section h1 { 
+      font-family: var(--mono); 
+      font-size: 24px; 
+      font-weight: 700; 
+      text-transform: uppercase; 
+      letter-spacing: .06em; 
+      margin-bottom: 6px;
+    }
+    .title-section h1 span { 
+      background: linear-gradient(90deg, #58A6FF, #A371F7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .metric-card {
+      background: linear-gradient(135deg, rgba(248, 81, 73, 0.15), rgba(248, 81, 73, 0.05));
+      border: 1px solid rgba(248, 81, 73, 0.3);
+      border-radius: var(--r);
+      padding: 16px 24px;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: flex-start;
+      box-shadow: 0 4px 12px rgba(248, 81, 73, 0.1);
+      min-width: 200px;
+    }
+    .metric-value {
+      font-family: var(--mono); font-size: 28px; font-weight: 700;
+      color: var(--red); line-height: 1; margin-bottom: 4px;
+    }
+    .metric-label {
+      font-size: 12px; font-weight: 600; color: var(--text);
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+
+    /* ── Filters & Controls Bar ── */
+    .dashboard-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 12px 20px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .filters { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+    .filter-group { display: flex; align-items: center; gap: 8px; }
+    .filter-group label { font-size: 12px; font-weight: 600; color: var(--sub); }
+    .filter-select {
+      background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      padding: 6px 12px; border-radius: 4px; font-family: var(--mono);
+      font-size: 11px; outline: none; cursor: pointer;
+    }
+    .filter-select:focus { border-color: var(--accent); }
+    
+    .stats-summary { font-family: var(--mono); font-size: 11px; color: var(--sub); }
+    .stats-summary strong { color: var(--text); font-weight: 600; }
+
+    .action-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+    
+    .btn {
+      font-family: var(--mono); font-size: 11px; font-weight: 600;
+      padding: 8px 16px; border-radius: 6px; cursor: pointer;
+      border: 1px solid var(--border); background: var(--bg3); color: var(--text);
+      transition: all .2s; text-transform: uppercase;
+      text-align: center;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-primary { background: rgba(88,166,255,.1); border-color: rgba(88,166,255,.3); color: var(--accent); }
+    .btn-primary:hover { background: rgba(88,166,255,.2); border-color: var(--accent); box-shadow: 0 0 12px var(--accent-glow); }
+
+    /* ── Dynamic Grid Layout ── */
+    .grid-layout {
+      display: grid;
+      grid-template-columns: minmax(130px, 1.2fr) 60px minmax(150px, 1.4fr) minmax(140px, 1.4fr) minmax(130px, 1.2fr) minmax(130px, 1.2fr) 50px 95px;
+      width: 100%;
+    }
+
+    /* ── Static column headers ── */
+    .col-headers {
+      background: rgba(255,255,255,.015); border: 1px solid var(--border);
+      border-radius: var(--r) var(--r) 0 0; border-bottom: 1px solid var(--border);
+      margin-bottom: 0;
+    }
+    .col-header {
+      font-family: var(--mono); font-size: 10px; color: var(--accent);
+      text-transform: uppercase; letter-spacing: .08em; padding: 12px 14px;
+      font-weight: 600; display: flex; align-items: center;
+    }
+    .col-header:not(:last-child) { border-right: 1px solid var(--border); }
+    .col-center { justify-content: center; text-align: center; }
+
+    /* ── Board ── */
+    .board { display: flex; flex-direction: column; gap: 10px; padding: 10px 0 0 0; }
+
+    .row-wrap {
+      display: flex; align-items: stretch; gap: var(--del-gap);
+      position: relative; transition: opacity 0.2s, transform 0.2s;
+    }
+    .row-wrap.dragging { opacity: 0.4; transform: scale(0.99); z-index: 100; }
+
+    /* ── Actions (Drag + Delete) ── */
+    .row-actions {
+      width: var(--del-w); flex-shrink: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 6px;
+      margin-left: calc(-1 * (var(--del-w) + var(--del-gap)));
+    }
+    .drag-handle {
+      color: #484F58; cursor: grab; font-size: 14px; padding: 4px;
+      line-height: 1; transition: color 0.2s; user-select: none; font-weight: bold;
+      touch-action: none;
+    }
+    .drag-handle:active { cursor: grabbing; color: var(--accent); }
+    .drag-handle:hover { color: var(--accent); }
+
+    .del-btn {
+      width: 100%; height: var(--del-w); display: flex; align-items: center;
+      justify-content: center; background: transparent; border: 1px solid transparent;
+      border-radius: 6px; color: #484F58; font-size: 14px; cursor: pointer; transition: all .2s;
+    }
+    .del-btn:hover { background: rgba(248,81,73,.15); color: var(--red); border-color: rgba(248,81,73,.4); transform: scale(1.05); }
+
+    /* ── The Card ── */
+    .row-card {
+      flex: 1; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: var(--r); overflow: hidden; transition: all .2s;
+      min-height: 80px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .row-card:hover { border-color: #525964; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+
+    /* ── Cells ── */
+    .cell { padding: 10px 14px; border-right: 1px solid var(--border); display: flex; flex-direction: column; justify-content: flex-start; }
+    .cell:last-child { border-right: none; padding: 0; }
+    .cell-center { align-items: center; justify-content: center; }
+
+    .date-created { font-family: var(--mono); font-size: 10px; color: var(--sub); margin-top: auto; padding-top: 8px; opacity: 0.7; user-select: none; }
+
+    .priority-check {
+      appearance: none; width: 22px; height: 22px; border: 1px solid var(--border);
+      border-radius: 4px; background: var(--bg2); cursor: pointer; position: relative; transition: all 0.2s;
+    }
+    .priority-check:checked { background: rgba(88,166,255,.2); border-color: var(--accent); }
+    .priority-check:checked::after { content: '★'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--accent); font-size: 14px; }
+
+    /* ── Link Column ── */
+    .link-wrap { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+    .link-input {
+      background: var(--bg2); border: 1px solid var(--border); color: var(--text);
+      padding: 6px 8px; border-radius: 4px; font-family: var(--mono); font-size: 11px; outline: none; width: 100%;
+    }
+    .link-input:focus { border-color: var(--accent); }
+    .link-open-btn {
+      font-family: var(--mono); font-size: 11px; font-weight: bold; text-align: center; text-decoration: none;
+      padding: 6px; border-radius: 4px; border: 1px solid var(--accent); color: var(--accent);
+      background: rgba(88,166,255,.05); transition: all 0.2s; display: block;
+    }
+    .link-open-btn:hover { background: rgba(88,166,255,.2); }
+    .link-open-btn.disabled { opacity: 0.3; pointer-events: none; border-color: var(--border); color: var(--sub); }
+
+    /* ── Status Bar ── */
+    .status-col { display: flex; flex-direction: column; height: 100%; background: rgba(0,0,0,0.2); }
+    .status-btn {
+      font-family: var(--mono); font-size: 11px; font-weight: 600; text-transform: uppercase; flex: 1;
+      border: none; border-bottom: 1px solid var(--border); background: transparent; color: var(--sub);
+      cursor: pointer; transition: all .2s; padding: 8px; letter-spacing: .05em; min-height: 36px;
+    }
+    .status-btn:last-child { border-bottom: none; }
+    .status-btn:hover:not(.active) { background: rgba(255,255,255,.05); color: var(--text); }
+    .status-btn.active.applied  { background: rgba(88,166,255,.15);  color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+    .status-btn.active.rejected { background: rgba(248,81,73,.15);   color: var(--red); box-shadow: inset 3px 0 0 var(--red); }
+    .status-btn.active.pending  { background: rgba(210,153,34,.15);  color: var(--yellow); box-shadow: inset 3px 0 0 var(--yellow); }
+
+    /* ── Text blocks & Contacts ── */
+    .text-blocks { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+    .text-block-wrap { display: flex; align-items: flex-start; gap: 4px; }
+    .text-block {
+      flex: 1; background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 8px 10px; 
+      font-size: 13px; color: var(--text); min-height: 36px; outline: none; transition: all .2s; line-height: 1.5; word-break: break-word;
+    }
+    .text-block:hover { border-color: #484f58; background: rgba(255,255,255,0.02); }
+    .text-block:focus { border-color: var(--accent); background: var(--bg); box-shadow: 0 0 0 2px var(--accent-glow); }
+    
+    .remove-block-btn, .remove-contact-btn {
+      flex-shrink: 0; width: 24px; height: 24px; margin-top: 6px; background: transparent; border: 1px solid transparent; 
+      border-radius: 4px; color: #484F58; cursor: pointer; font-size: 12px; font-weight: bold; display: flex; align-items: center; justify-content: center;
+    }
+    .remove-block-btn:hover, .remove-contact-btn:hover { background: rgba(248,81,73,.15); color: var(--red); border-color: rgba(248,81,73,.4); }
+    
+    .add-block-btn, .add-contact-btn {
+      margin-top: 4px; font-family: var(--mono); font-size: 11px; padding: 8px; background: rgba(255,255,255,0.02); 
+      border: 1px dashed var(--border); color: var(--sub); border-radius: 4px; cursor: pointer; text-align: center; text-transform: uppercase;
+    }
+    .add-block-btn:hover, .add-contact-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+
+    .contacts-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 6px; }
+    .contact-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 4px; }
+    .contact-item:focus-within { border-color: var(--border-focus); box-shadow: 0 0 0 2px var(--accent-glow); }
+    .contact-header { display: flex; align-items: flex-start; gap: 4px; }
+    .contact-name { flex: 1; font-size: 14px; font-weight: 500; outline: none; min-height: 22px; border-bottom: 1px solid transparent; padding-bottom: 2px; }
+    .contact-name:focus { border-bottom-color: var(--accent); }
+    .contact-notes { font-size: 12px; color: var(--sub); outline: none; min-height: 20px; line-height: 1.4; }
+    .contact-notes:focus { color: var(--text); }
+
+    /* ── Responsive & Mobile Adjustments ── */
+    @media (max-width: 1200px) {
+      body { padding: 1.5rem; }
+      .row-actions { margin-left: calc(-1 * (var(--del-w) + 8px)); }
+    }
+
+    @media (max-width: 900px) {
+      body { padding: 1rem; background-image: none; }
+      
+      .header-top { flex-direction: column; align-items: stretch; gap: 16px; }
+      .metric-card { width: 100%; text-align: center; align-items: center; }
+      
+      .dashboard-controls { flex-direction: column; align-items: stretch; gap: 16px; }
+      .filters { flex-direction: column; align-items: stretch; gap: 12px; width: 100%; }
+      .filter-group { justify-content: space-between; width: 100%; }
+      .filter-select { flex: 1; margin-left: 10px; }
+      .action-buttons { flex-direction: column; width: 100%; }
+      .btn { width: 100%; padding: 12px; font-size: 13px; }
+
+      .col-headers { display: none; }
+      
+      .row-wrap { flex-direction: column; gap: 8px; margin-bottom: 24px; }
+      
+      .row-actions { 
+        flex-direction: row; width: 100%; margin-left: 0; height: auto; 
+        justify-content: space-between; background: var(--bg3);
+        border: 1px solid var(--border); border-radius: 8px 8px 0 0; padding: 8px 16px;
+      }
+      .drag-handle { padding: 8px; font-size: 18px; transform: rotate(90deg); }
+      .del-btn { width: auto; height: auto; padding: 8px 16px; }
+
+      .row-card { display: flex; flex-direction: column; border-radius: 0 0 8px 8px; border-top: none; }
+      
+      .cell { border-right: none; border-bottom: 1px solid var(--border); padding: 16px; }
+      .cell-center { align-items: flex-start; text-align: left; }
+      
+      /* Dynamic Mobile Headers */
+      .cell::before {
+        display: block; font-family: var(--mono); font-size: 11px;
+        color: var(--accent); text-transform: uppercase; letter-spacing: .08em;
+        margin-bottom: 12px; font-weight: 600;
+      }
+      .cell:nth-child(1)::before { content: "Target / Role"; }
+      .cell:nth-child(2)::before { content: "Link"; }
+      .cell:nth-child(3)::before { content: "Intel / Core Problem"; }
+      .cell:nth-child(4)::before { content: "My Fit Evidence"; }
+      .cell:nth-child(5)::before { content: "Network Contacts"; }
+      .cell:nth-child(6)::before { content: "Next Steps"; }
+      .cell:nth-child(7)::before { content: "Priority"; }
+      .cell:nth-child(8)::before { content: "Status"; }
+
+      .cell:nth-child(8) { border-bottom: none; padding: 0; }
+      
+      .status-col { flex-direction: row; flex-wrap: wrap; }
+      .status-btn { 
+        padding: 14px; border-bottom: none; border-right: 1px solid var(--border); 
+        box-shadow: none !important; border-top: 1px solid var(--border);
+      }
+      .status-btn:last-child { border-right: none; }
+      .status-btn.active.applied { border-top: 2px solid var(--accent); }
+      .status-btn.active.rejected { border-top: 2px solid var(--red); }
+      .status-btn.active.pending { border-top: 2px solid var(--yellow); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header-top">
+  <div class="title-section">
+    <h1>Strategic <span>Target Board</span></h1>
+    <div class="stats-summary">
+      <span id="totalCount"><strong>0</strong></span> Targets | 
+      <span id="appliedCount"><strong>0</strong></span> Applied | 
+      <span id="priorityCount"><strong>0</strong></span> High Priority
+    </div>
+  </div>
+  
+  <div class="metric-card">
+    <div class="metric-value" id="pendingCounter">0</div>
+    <div class="metric-label">Action Required (Pending)</div>
+  </div>
+</div>
+
+<div class="dashboard-controls">
+  <div class="filters">
+    <div class="filter-group">
+      <label>Status:</label>
+      <select class="filter-select" id="filterStatus">
+        <option value="all">All</option>
+        <option value="pending">Pending</option>
+        <option value="applied">Applied</option>
+        <option value="rejected">Rejected</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Sort By:</label>
+      <select class="filter-select" id="sortBoard">
+        <option value="custom">Custom (Drag)</option>
+        <option value="date-new">Date (Newest)</option>
+        <option value="date-old">Date (Oldest)</option>
+      </select>
+    </div>
+  </div>
+  
+  <div class="action-buttons">
+    <button class="btn" onclick="addRow()">+ Add Target</button>
+    <button class="btn btn-primary" onclick="saveData()">Save Board</button>
+    <button class="btn" onclick="exportCSV()">Export CSV</button>
+  </div>
+</div>
+
+<div class="col-headers grid-layout">
+  <div class="col-header">Target / Role</div>
+  <div class="col-header col-center">Link</div>
+  <div class="col-header">Intel / Core Problem</div>
+  <div class="col-header">My Fit Evidence</div>
+  <div class="col-header">Network Contacts</div>
+  <div class="col-header">Next Steps</div>
+  <div class="col-header col-center" title="High Priority">Pri</div>
+  <div class="col-header">Status</div>
+</div>
+
+<div class="board" id="board"></div>
+
+<script>
+  /* ── paste safety ── */
+  function safePaste(el) {
+    el.addEventListener('paste', e => {
+      e.preventDefault();
+      document.execCommand('insertText', false, (e.originalEvent||e).clipboardData.getData('text/plain'));
+    });
+  }
+
+  function getTodayString() {
+    return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  /* ── text blocks ── */
+  function makeTextBlockWrap(html = '') {
+    const wrap = document.createElement('div');
+    wrap.className = 'text-block-wrap';
+    const div = document.createElement('div');
+    div.contentEditable = 'true'; div.className = 'text-block'; div.innerHTML = html; safePaste(div);
+    const rm = document.createElement('button');
+    rm.className = 'remove-block-btn'; rm.title = 'Remove'; rm.innerHTML = '✕';
+    rm.addEventListener('click', () => {
+      const p = wrap.parentElement;
+      if (p.querySelectorAll('.text-block-wrap').length > 1) wrap.remove();
+      else div.innerHTML = '';
+      saveData();
+    });
+    wrap.appendChild(div); wrap.appendChild(rm);
+    return wrap;
+  }
+
+  function buildTargetCell(savedText, savedDate) {
+    const outer = document.createElement('div'); outer.className = 'cell';
+    const blocks = document.createElement('div'); blocks.className = 'text-blocks';
+    (savedText && savedText.length ? savedText.split('|||') : ['']).forEach(l => blocks.appendChild(makeTextBlockWrap(l)));
+    const add = document.createElement('button'); add.className = 'add-block-btn'; add.textContent = '+ Add Line';
+    add.addEventListener('click', () => { const w = makeTextBlockWrap(''); blocks.insertBefore(w, add); w.querySelector('.text-block').focus(); });
+    blocks.appendChild(add); outer.appendChild(blocks);
+
+    const dateEl = document.createElement('div'); dateEl.className = 'date-created';
+    const d = savedDate || getTodayString(); dateEl.textContent = `Added: ${d}`; dateEl.dataset.date = d;
+    outer.appendChild(dateEl); return outer;
+  }
+
+  function buildTextCell(saved) {
+    const outer = document.createElement('div'); outer.className = 'cell';
+    const blocks = document.createElement('div'); blocks.className = 'text-blocks';
+    (saved && saved.length ? saved.split('|||') : ['']).forEach(l => blocks.appendChild(makeTextBlockWrap(l)));
+    const add = document.createElement('button'); add.className = 'add-block-btn'; add.textContent = '+ Add Line';
+    add.addEventListener('click', () => { const w = makeTextBlockWrap(''); blocks.insertBefore(w, add); w.querySelector('.text-block').focus(); });
+    blocks.appendChild(add); outer.appendChild(blocks); return outer;
+  }
+
+  function readTextCell(cell) { return [...cell.querySelectorAll('.text-block')].map(b => b.innerHTML).join('|||'); }
+
+  /* ── Links & Priority Check ── */
+  function buildLinkCell(url) {
+    const outer = document.createElement('div'); outer.className = 'cell cell-center';
+    const wrap = document.createElement('div'); wrap.className = 'link-wrap';
+    const input = document.createElement('input'); input.type = 'text'; input.className = 'link-input';
+    input.placeholder = 'Paste URL...'; input.value = url || '';
+    const btn = document.createElement('a'); btn.className = 'link-open-btn disabled'; btn.target = '_blank'; btn.textContent = 'Open';
+    
+    const updateLink = () => {
+      let v = input.value.trim();
+      if(v) { btn.href = v.startsWith('http') ? v : 'https://' + v; btn.classList.remove('disabled'); } 
+      else { btn.removeAttribute('href'); btn.classList.add('disabled'); }
+    };
+    
+    input.addEventListener('input', updateLink); input.addEventListener('blur', saveData); updateLink();
+    wrap.appendChild(input); wrap.appendChild(btn); outer.appendChild(wrap); return outer;
+  }
+
+  function buildPriorityCell(isChecked) {
+    const outer = document.createElement('div'); outer.className = 'cell cell-center';
+    const check = document.createElement('input'); check.type = 'checkbox'; check.className = 'priority-check';
+    check.checked = isChecked || false; check.addEventListener('change', () => { saveData(); updateMetrics(); });
+    outer.appendChild(check); return outer;
+  }
+
+  /* ── Contacts ── */
+  function makeContactItem(name='', notes='') {
+    const item = document.createElement('div'); item.className = 'contact-item';
+    const header = document.createElement('div'); header.className = 'contact-header';
+    const nameEl = document.createElement('div'); nameEl.contentEditable = 'true'; nameEl.className = 'contact-name'; nameEl.innerHTML = name; safePaste(nameEl);
+    
+    if(!name) nameEl.setAttribute("data-placeholder", "Name / Title");
+    nameEl.addEventListener('input', () => {
+       if(nameEl.innerText.trim() === "") nameEl.setAttribute("data-placeholder", "Name / Title");
+       else nameEl.removeAttribute("data-placeholder");
+    });
+
+    const rm = document.createElement('button'); rm.className = 'remove-contact-btn'; rm.title = 'Remove Contact'; rm.innerHTML = '✕';
+    const notesEl = document.createElement('div'); notesEl.contentEditable = 'true'; notesEl.className = 'contact-notes'; notesEl.innerHTML = notes; safePaste(notesEl);
+    
+    rm.addEventListener('click', () => {
+      const list = item.parentElement;
+      if (list.querySelectorAll('.contact-item').length > 1) item.remove();
+      else { nameEl.innerHTML = ''; notesEl.innerHTML = ''; }
+      saveData();
+    });
+    
+    header.appendChild(nameEl); header.appendChild(rm);
+    item.appendChild(header); item.appendChild(notesEl); return item;
+  }
+
+  function buildContactsCell(data) {
+    const outer = document.createElement('div'); outer.className = 'cell';
+    const list = document.createElement('div'); list.className = 'contacts-list';
+    if (data && data.length) data.forEach(c => list.appendChild(makeContactItem(c.name, c.notes)));
+    else list.appendChild(makeContactItem());
+    
+    const addBtn = document.createElement('button'); addBtn.className = 'add-contact-btn'; addBtn.textContent = '+ Add Contact';
+    addBtn.addEventListener('click', () => { const c = makeContactItem(); list.appendChild(c); c.querySelector('.contact-name').focus(); });
+    outer.appendChild(list); outer.appendChild(addBtn); return outer;
+  }
+
+  function readContactsCell(cell) {
+    return [...cell.querySelectorAll('.contact-item')].map(item => ({
+      name: item.querySelector('.contact-name').innerHTML,
+      notes: item.querySelector('.contact-notes').innerHTML
+    }));
+  }
+
+  /* ── Status ── */
+  function buildStatusCell(status) {
+    const outer = document.createElement('div'); outer.className = 'cell'; outer.style.padding = '0';
+    const group = document.createElement('div'); group.className = 'status-col'; group.dataset.status = status || 'pending';
+    [['applied','Applied'],['rejected','Rejected'],['pending','Pending']].forEach(([val,label]) => {
+      const btn = document.createElement('button'); btn.className = 'status-btn ' + val + (status === val ? ' active' : ''); btn.textContent = label;
+      btn.addEventListener('click', () => { 
+        group.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); 
+        group.dataset.status = val; saveData(); applyFilters(); updateMetrics();
+      });
+      group.appendChild(btn);
+    });
+    outer.appendChild(group); return outer;
+  }
+
+  /* ── Row Addition & Drag/Drop ── */
+  const board = document.getElementById('board');
+  
+  board.addEventListener('dragover', e => {
+    e.preventDefault();
+    if(document.getElementById('sortBoard').value !== 'custom') return; 
+    const afterElement = getDragAfterElement(board, e.clientY);
+    const draggable = document.querySelector('.dragging');
+    if (draggable) { if (afterElement == null) board.appendChild(draggable); else board.insertBefore(draggable, afterElement); }
+  });
+
+  function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.row-wrap:not(.dragging)')];
+    return draggableElements.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closest.offset) return { offset: offset, element: child }; else return closest;
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+  }
+
+  function addRow(data = null) {
+    const wrap = document.createElement('div'); wrap.className = 'row-wrap';
+    const actions = document.createElement('div'); actions.className = 'row-actions';
+    
+    const dragHandle = document.createElement('div'); dragHandle.className = 'drag-handle'; dragHandle.title = 'Drag to reorder'; dragHandle.innerHTML = '⋮⋮';
+    
+    // Desktop Drag
+    dragHandle.addEventListener('mousedown', () => { if(document.getElementById('sortBoard').value === 'custom') wrap.draggable = true; });
+    dragHandle.addEventListener('mouseup', () => { wrap.draggable = false; });
+    
+    // Touch Mobile Drag support
+    dragHandle.addEventListener('touchstart', (e) => { 
+      if(document.getElementById('sortBoard').value === 'custom') { wrap.draggable = true; } 
+    }, {passive: true});
+    dragHandle.addEventListener('touchend', () => { wrap.draggable = false; });
+    
+    wrap.addEventListener('dragstart', () => { wrap.classList.add('dragging'); });
+    wrap.addEventListener('dragend', () => { wrap.classList.remove('dragging'); wrap.draggable = false; saveData(); });
+
+    const delBtn = document.createElement('button'); delBtn.className = 'del-btn'; delBtn.title = 'Remove target'; delBtn.innerHTML = '✕';
+    delBtn.addEventListener('click', () => { if(confirm("Remove this target?")) { wrap.remove(); saveData(); updateMetrics(); }});
+    
+    actions.appendChild(dragHandle); actions.appendChild(delBtn);
+
+    const card = document.createElement('div'); card.className = 'row-card grid-layout';
+
+    card.appendChild(buildTargetCell(data?.target || '', data?.date || ''));
+    card.appendChild(buildLinkCell(data?.link || ''));
+    card.appendChild(buildTextCell(data?.problem || ''));
+    card.appendChild(buildTextCell(data?.fit || ''));
+    card.appendChild(buildContactsCell(data?.contacts || null));
+    card.appendChild(buildTextCell(data?.nextSteps || ''));
+    card.appendChild(buildPriorityCell(data?.priority || false));
+    card.appendChild(buildStatusCell(data?.status || 'pending'));
+
+    wrap.appendChild(actions); wrap.appendChild(card); board.appendChild(wrap); updateMetrics();
+  }
+
+  /* ── Save / Load / Metrics / Filter ── */
+  function saveData() {
+    const wraps = [...document.querySelectorAll('.row-wrap')];
+    const d = wraps.map(wrap => {
+      const cells = [...wrap.querySelector('.row-card').children];
+      return {
+        target:    readTextCell(cells[0]),
+        date:      cells[0].querySelector('.date-created').dataset.date,
+        link:      cells[1].querySelector('.link-input').value,
+        problem:   readTextCell(cells[2]),
+        fit:       readTextCell(cells[3]),
+        contacts:  readContactsCell(cells[4]),
+        nextSteps: readTextCell(cells[5]),
+        priority:  cells[6].querySelector('.priority-check').checked,
+        status:    cells[7].querySelector('.status-col').dataset.status
+      };
+    });
+    localStorage.setItem('jobBoardV8', JSON.stringify(d));
+  }
+
+  function loadData() {
+    board.innerHTML = '';
+    const raw = localStorage.getItem('jobBoardV8');
+    const oldRaw = localStorage.getItem('jobBoardV7'); 
+    
+    if (raw) { JSON.parse(raw).forEach(d => addRow(d)); } 
+    else if (oldRaw) { JSON.parse(oldRaw).forEach(d => addRow(d)); } 
+    else {
+      addRow({
+        target: 'Example Company<br>Position', date: getTodayString(), problem: 'What kind of problems does the company deal with?',
+        fit: 'My background.', contacts: [{ name: 'Example Name', notes: 'Position' }],
+        nextSteps: 'Schedule a coffee chat with Google Meet.', status: 'Applied', priority: true
+      });
+    }
+    applyFilters(); updateMetrics();
+  }
+
+  function updateMetrics() {
+    const wraps = [...document.querySelectorAll('.row-wrap')];
+    let total = wraps.length, pending = 0, applied = 0, priority = 0;
+    wraps.forEach(wrap => {
+      const stat = wrap.querySelector('.status-col').dataset.status;
+      const pri = wrap.querySelector('.priority-check').checked;
+      if (stat === 'pending') pending++; if (stat === 'applied') applied++; if (pri) priority++;
+    });
+    document.getElementById('totalCount').innerHTML = `<strong>${total}</strong>`;
+    document.getElementById('pendingCounter').innerText = pending;
+    document.getElementById('appliedCount').innerHTML = `<strong>${applied}</strong>`;
+    document.getElementById('priorityCount').innerHTML = `<strong>${priority}</strong>`;
+  }
+
+  function applyFilters() {
+    const statusFilter = document.getElementById('filterStatus').value;
+    const wraps = [...document.querySelectorAll('.row-wrap')];
+    wraps.forEach(wrap => {
+      const stat = wrap.querySelector('.status-col').dataset.status;
+      if (statusFilter === 'all' || stat === statusFilter) { wrap.style.display = 'flex'; } else { wrap.style.display = 'none'; }
+    });
+  }
+
+  document.getElementById('filterStatus').addEventListener('change', applyFilters);
+  
+  document.getElementById('sortBoard').addEventListener('change', (e) => {
+    const val = e.target.value; const wraps = [...document.querySelectorAll('.row-wrap')];
+    if(val === 'custom') { loadData(); return; }
+    wraps.sort((a, b) => {
+      const dateA = new Date(a.querySelector('.date-created').dataset.date);
+      const dateB = new Date(b.querySelector('.date-created').dataset.date);
+      return val === 'date-new' ? dateB - dateA : dateA - dateB;
+    });
+    board.innerHTML = ''; wraps.forEach(w => board.appendChild(w));
+  });
+
+  function exportCSV() {
+    const headers = '"Target Entity","Date Added","Link","Problem","My Fit","Connections","Next Steps","Priority","Status"\r\n';
+    const rows = [...document.querySelectorAll('.row-wrap')].map(wrap => {
+      const cells = [...wrap.querySelector('.row-card').children];
+      const getText = i => [...cells[i].querySelectorAll('.text-block')].map(b=>b.innerText.replace(/\n/g,' ').trim()).join(' | ').replace(/"/g,'""');
+      const getDate = () => cells[0].querySelector('.date-created').dataset.date;
+      const getLink = () => cells[1].querySelector('.link-input').value.trim();
+      const getPri = () => cells[6].querySelector('.priority-check').checked ? "Yes" : "No";
+      const conns = [...cells[4].querySelectorAll('.contact-item')].map(ci => {
+        const n = ci.querySelector('.contact-name').innerText.trim(); const no = ci.querySelector('.contact-notes').innerText.trim();
+        return [n,no].filter(Boolean).join(' - ');
+      }).join(' | ').replace(/"/g,'""');
+      return [`"${getText(0)}"`,`"${getDate()}"`,`"${getLink()}"`,`"${getText(2)}"`,`"${getText(3)}"`,`"${conns}"`,`"${getText(5)}"`,`"${getPri()}"`,`"${cells[7].querySelector('.status-col').dataset.status.toUpperCase()}"`].join(',');
+    }).join('\r\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([headers+rows],{type:'text/csv;charset=utf-8;'}));
+    a.download='Strategic_Target_Board.csv'; a.style.display='none'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+
+  document.addEventListener('focusout', (e) => { if (e.target.hasAttribute('contenteditable')) saveData(); });
+  window.onload = loadData;
+</script>
+</body>
+</html>
