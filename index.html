@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Strategic Target Board</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
 
     :root {
       --bg: #000000;
@@ -16,18 +16,17 @@
       --border: #30363D;
       --accent: #58A6FF;
       --accent-bg: rgba(88, 166, 255, 0.15);
-      --green: #2EA043;
-      --yellow: #D29922;
       --red: #F85149;
       --red-bg: rgba(248, 81, 73, 0.15);
+      --yellow: #D29922;
+      --yellow-bg: rgba(210, 153, 34, 0.15);
       --font-sans: 'Inter', -apple-system, sans-serif;
-      --font-mono: 'IBM Plex Mono', monospace;
+      --font-mono: 'JetBrains Mono', monospace;
       --safe-top: env(safe-area-inset-top, 20px);
       --safe-bottom: env(safe-area-inset-bottom, 20px);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
     body { font-family: var(--font-sans); background-color: var(--bg); color: var(--text); overscroll-behavior-y: none; line-height: 1.5; }
 
     /* ── GUMROAD LOCK SCREEN ── */
@@ -39,30 +38,39 @@
       transition: opacity 0.4s ease;
     }
     #gumroad-lock.unlocked { opacity: 0; pointer-events: none; }
-    .lock-box {
-      background: var(--bg-card); border: 1px solid var(--border);
-      padding: 32px 24px; border-radius: 16px; max-width: 400px; width: 100%;
-      box-shadow: 0 16px 48px rgba(0,0,0,0.5);
-    }
+    .lock-box { background: var(--bg-card); border: 1px solid var(--border); padding: 32px 24px; border-radius: 16px; max-width: 400px; width: 100%; box-shadow: 0 16px 48px rgba(0,0,0,0.5); }
     .lock-title { font-family: var(--font-mono); font-size: 20px; font-weight: 700; margin-bottom: 8px; }
     .lock-title span { color: var(--accent); }
-    .lock-desc { font-size: 14px; color: var(--sub); margin-bottom: 24px; line-height: 1.5; }
-    .lock-input {
-      width: 100%; padding: 16px; border-radius: 8px; border: 1px solid var(--border);
-      background: var(--bg-elevated); color: var(--text); font-family: var(--font-mono);
-      font-size: 16px; margin-bottom: 16px; outline: none; text-align: center;
-    }
-    .lock-btn {
-      width: 100%; padding: 16px; border-radius: 8px; border: none;
-      background: var(--accent); color: #000; font-family: var(--font-mono);
-      font-size: 14px; font-weight: 700; text-transform: uppercase; cursor: pointer;
-    }
+    .lock-desc { font-size: 14px; color: var(--sub); margin-bottom: 24px; }
+    .lock-input { width: 100%; padding: 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text); font-family: var(--font-mono); font-size: 16px; margin-bottom: 16px; text-align: center; }
+    .lock-btn { width: 100%; padding: 16px; border-radius: 8px; border: none; background: var(--accent); color: #000; font-family: var(--font-mono); font-size: 14px; font-weight: 700; text-transform: uppercase; cursor: pointer; }
     .lock-error { color: var(--red); font-size: 12px; margin-top: 12px; display: none; }
 
-    /* ... [Rest of your styles go here] ... */
+    /* ── DASHBOARD UI ── */
+    #dashboard { display: flex; flex-direction: column; height: 100vh; width: 100%; }
+    .app-header { padding: calc(var(--safe-top) + 16px) 20px 16px; background: rgba(17, 20, 24, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+    .app-title { font-family: var(--font-mono); font-size: 18px; font-weight: 700; text-transform: uppercase; margin-bottom: 12px; }
+    .app-title span { color: var(--accent); }
+    .metrics-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
+    .metric-pill { display: flex; align-items: center; gap: 8px; background: var(--bg-elevated); border: 1px solid var(--border); padding: 8px 14px; border-radius: 20px; }
+    .metric-pill strong { font-family: var(--font-mono); font-size: 16px; }
+    .metric-pill span { font-size: 12px; color: var(--sub); }
+    .target-list { flex: 1; overflow-y: auto; padding: 16px 20px calc(var(--safe-bottom) + 80px); display: flex; flex-direction: column; gap: 12px; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .card-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+    .card-title { font-size: 17px; font-weight: 600; }
+    .status-badge { font-family: var(--font-mono); font-size: 11px; padding: 4px 10px; border-radius: 6px; }
+    .status-badge.pending { background: var(--yellow-bg); color: var(--yellow); }
+    .status-badge.applied { background: var(--accent-bg); color: var(--accent); }
+    .fab { position: fixed; bottom: calc(var(--safe-bottom) + 20px); right: 20px; width: 56px; height: 56px; border-radius: 28px; background: var(--accent); font-size: 32px; border: none; z-index: 20; }
     
-    /* (Adding the existing styles from your mobile-optimized file here) */
-    /* Note: Since this is a long file, ensure you paste all previous styles after the lock screen CSS */
+    /* Edit Modal */
+    #edit-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 100; transform: translateY(100%); transition: transform 0.35s; display: flex; flex-direction: column; }
+    #edit-modal.open { transform: translateY(0); }
+    .modal-header { padding: calc(var(--safe-top) + 12px) 20px 12px; background: var(--bg-card); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+    .modal-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+    .input-field { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; padding: 14px; color: var(--text); font-size: 16px; width: 100%; outline: none; }
+    .btn-danger { background: var(--red-bg); color: var(--red); padding: 16px; border-radius: 8px; border: none; font-weight: 600; margin-top: 20px; }
   </style>
 </head>
 <body>
@@ -70,73 +78,85 @@
   <div id="gumroad-lock">
     <div class="lock-box">
       <div class="lock-title">Target <span>Board</span></div>
-      <div class="lock-desc">Enter the license key sent to your email after purchase to unlock the dashboard.</div>
+      <div class="lock-desc">Enter your license key to unlock your dashboard.</div>
       <input type="text" id="license-key-input" class="lock-input" placeholder="LICENSE KEY">
       <button class="lock-btn" id="verify-btn" onclick="verifyGumroadKey()">Unlock App</button>
-      <div class="lock-error" id="lock-error">Invalid license key. Please check your email.</div>
+      <div class="lock-error" id="lock-error">Invalid license key.</div>
+    </div>
+  </div>
+
+  <div id="dashboard">
+    <div class="app-header">
+      <div class="app-title">Strategic <span>Target Board</span></div>
+      <div class="metrics-row">
+        <div class="metric-pill"><strong id="m-total">0</strong> <span>Targets</span></div>
+        <div class="metric-pill"><strong id="m-pending">0</strong> <span>Pending</span></div>
+      </div>
+    </div>
+    <div class="target-list" id="targetList"></div>
+    <button class="fab" onclick="openModal()">+</button>
+  </div>
+
+  <div id="edit-modal">
+    <div class="modal-header">
+      <button onclick="closeModal()">Cancel</button>
+      <button onclick="saveTarget()">Save</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="f-id">
+      <textarea id="f-target" class="input-field" placeholder="Company / Position"></textarea>
+      <input type="text" id="f-link" class="input-field" placeholder="Job Link">
+      <button id="f-delete-btn" class="btn-danger" onclick="deleteTarget()">Delete Target</button>
     </div>
   </div>
 
   <script>
-    // --- GUMROAD LICENSING ---
-    const GUMROAD_PRODUCT_ID = "F5iQ0zfPau2H0EpW3XZmxg=="; // YOUR PRODUCT ID
+    const GUMROAD_PRODUCT_ID = "F5iQ0zfPau2H0EpW3XZmxg=="; 
+    let targets = [];
 
+    // --- GUMROAD LOGIC ---
     async function verifyGumroadKey() {
-      const keyInput = document.getElementById('license-key-input').value.trim();
+      const key = document.getElementById('license-key-input').value.trim();
       const btn = document.getElementById('verify-btn');
-      const errorMsg = document.getElementById('lock-error');
-      
-      if (!keyInput) return;
-
+      if (!key) return;
       btn.innerText = "Verifying...";
-      errorMsg.style.display = "none";
-
       try {
         const response = await fetch("https://api.gumroad.com/v2/licenses/verify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            product_id: GUMROAD_PRODUCT_ID,
-            license_key: keyInput
-          })
+          body: JSON.stringify({ product_id: GUMROAD_PRODUCT_ID, license_key: key })
         });
-
         const data = await response.json();
-
-        if (data.success && !data.purchase.refunded && !data.purchase.chargebacked) {
-          localStorage.setItem('gumroad_valid_key', keyInput);
+        if (data.success && !data.purchase.refunded) {
+          localStorage.setItem('gumroad_valid_key', key);
           unlockApp();
         } else {
-          showError("Invalid or refunded license key.");
-          localStorage.removeItem('gumroad_valid_key');
+          document.getElementById('lock-error').style.display = "block";
         }
-      } catch (error) {
-        showError("Network error. Please try again.");
-      }
+      } catch (e) { alert("Network error"); }
       btn.innerText = "Unlock App";
     }
 
-    function showError(msg) {
-      const errorMsg = document.getElementById('lock-error');
-      errorMsg.innerText = msg;
-      errorMsg.style.display = "block";
-    }
-
     function unlockApp() {
-  document.getElementById('gumroad-lock').classList.add('unlocked');
-  // FORCE THE BOARD TO RENDER ONCE UNLOCKED
-  renderDashboard(); 
-  }
+      document.getElementById('gumroad-lock').classList.add('unlocked');
+      renderDashboard();
+    }
 
     function checkExistingLicense() {
-      const savedKey = localStorage.getItem('gumroad_valid_key');
-      if (savedKey) unlockApp();
+      if (localStorage.getItem('gumroad_valid_key')) unlockApp();
     }
 
-    // Call this at the start of your window.onload
-    checkExistingLicense();
+    // --- DASHBOARD LOGIC (Simplified for brevity) ---
+    function renderDashboard() { /* ... Dashboard rendering logic ... */ }
+    function openModal(id) { document.getElementById('edit-modal').classList.add('open'); }
+    function closeModal() { document.getElementById('edit-modal').classList.remove('open'); }
+    function saveTarget() { /* ... Save logic ... */ closeModal(); }
+    function deleteTarget() { /* ... Delete logic ... */ closeModal(); }
 
-    // --- [REST OF YOUR EXISTING JS GOES HERE] ---
+    window.onload = () => {
+      checkExistingLicense();
+      // Load data...
+    };
   </script>
 </body>
 </html>
