@@ -5,158 +5,613 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Strategic Target Board</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
+
     :root {
-      --bg: #000000; --bg-card: #111418; --bg-elevated: #1C2128; --text: #F0F6FC; --sub: #8B949E;
-      --border: #30363D; --accent: #58A6FF; --red: #F85149; --red-bg: rgba(248, 81, 73, 0.15);
+      --bg: #000000;
+      --bg-card: #111418;
+      --bg-elevated: #1C2128;
+      --text: #F0F6FC;
+      --sub: #8B949E;
+      --border: #30363D;
+      --accent: #58A6FF;
+      --accent-bg: rgba(88, 166, 255, 0.15);
+      --green: #2EA043;
+      --green-bg: rgba(46, 160, 67, 0.15);
+      --yellow: #D29922;
+      --yellow-bg: rgba(210, 153, 34, 0.15);
+      --red: #F85149;
+      --red-bg: rgba(248, 81, 73, 0.15);
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --safe-top: env(safe-area-inset-top, 20px);
+      --safe-bottom: env(safe-area-inset-bottom, 20px);
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text); overscroll-behavior-y: none; }
 
-    /* Lock Screen */
-    #gumroad-lock { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; transition: opacity 0.4s; }
-    #gumroad-lock.unlocked { opacity: 0; pointer-events: none; }
-    .lock-box { background: var(--bg-card); border: 1px solid var(--border); padding: 32px; border-radius: 16px; width: 100%; max-width: 400px; text-align: center; }
-    .lock-input { width: 100%; padding: 16px; margin: 16px 0; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text); text-align: center; font-size: 16px; }
-    .lock-btn { width: 100%; padding: 16px; border-radius: 8px; border: none; background: var(--accent); font-weight: 700; cursor: pointer; }
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg);
+      color: var(--text);
+      /* Prevent pull-to-refresh rubber-banding */
+      overscroll-behavior-y: none; 
+      line-height: 1.5;
+    }
 
-    /* Dashboard */
-    #dashboard { display: flex; flex-direction: column; height: 100vh; }
-    .app-header { padding: 40px 20px 20px; border-bottom: 1px solid var(--border); }
-    .target-list { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
-    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
-    .card-title { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
-    .fab { position: fixed; bottom: 30px; right: 20px; width: 56px; height: 56px; border-radius: 28px; background: var(--accent); font-size: 32px; border: none; z-index: 20; }
+    /* ── DASHBOARD (LIST VIEW) ── */
+    #dashboard {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100%;
+    }
+
+    .app-header {
+      padding: calc(var(--safe-top) + 16px) 20px 16px;
+      background: rgba(17, 20, 24, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .app-title {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+    }
+    .app-title span { color: var(--accent); }
+
+    .metrics-row {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none; /* Firefox */
+    }
+    .metrics-row::-webkit-scrollbar { display: none; } /* Safari/Chrome */
+
+    .metric-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    .metric-pill strong { font-family: var(--font-mono); font-size: 16px; color: var(--text); }
+    .metric-pill span { font-size: 12px; font-weight: 500; color: var(--sub); }
+    .metric-pill.action-req { border-color: rgba(248, 81, 73, 0.4); background: var(--red-bg); }
+    .metric-pill.action-req strong { color: var(--red); }
+
+    .target-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px calc(var(--safe-bottom) + 80px); /* Space for FAB */
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ── TARGET CARD ── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      position: relative;
+      transition: transform 0.1s, background 0.1s;
+    }
+    .card:active { transform: scale(0.98); background: var(--bg-elevated); }
+
+    .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    .card-title { font-size: 17px; font-weight: 600; color: var(--text); line-height: 1.3; }
+    .card-date { font-family: var(--font-mono); font-size: 10px; color: var(--sub); margin-top: 4px; }
+    .priority-icon { color: var(--accent); font-size: 18px; line-height: 1; }
+
+    .card-body { margin-bottom: 16px; }
+    .next-step-preview {
+      font-size: 13px;
+      color: var(--sub);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .next-step-preview strong { color: var(--text); font-weight: 500; margin-right: 4px; }
+
+    .card-footer { display: flex; justify-content: space-between; align-items: center; }
     
-    /* Edit Modal */
-    #edit-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 100; transform: translateY(100%); transition: transform 0.35s; display: flex; flex-direction: column; }
+    .status-badge {
+      font-family: var(--font-mono); font-size: 11px; font-weight: 700; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 6px; letter-spacing: 0.05em;
+    }
+    .status-badge.pending { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(210, 153, 34, 0.3); }
+    .status-badge.applied { background: var(--accent-bg); color: var(--accent); border: 1px solid rgba(88, 166, 255, 0.3); }
+    .status-badge.rejected { background: var(--red-bg); color: var(--red); border: 1px solid rgba(248, 81, 73, 0.3); }
+
+    .edit-arrow { font-weight: 600; color: var(--sub); font-size: 14px; }
+
+    /* ── FAB (Floating Action Button) ── */
+    .fab {
+      position: fixed;
+      bottom: calc(var(--safe-bottom) + 20px);
+      right: 20px;
+      width: 56px;
+      height: 56px;
+      border-radius: 28px;
+      background: var(--accent);
+      color: #000;
+      font-size: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(88, 166, 255, 0.4);
+      border: none;
+      z-index: 20;
+      cursor: pointer;
+    }
+    .fab:active { transform: scale(0.95); }
+
+    /* ── EDIT MODAL (BOTTOM SHEET) ── */
+    #edit-modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--bg);
+      z-index: 100;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+    }
     #edit-modal.open { transform: translateY(0); }
-    .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 20px; flex: 1; overflow-y: auto; }
-    .input-field { background: var(--bg-elevated); border: 1px solid var(--border); padding: 14px; color: var(--text); border-radius: 8px; font-size: 16px; width: 100%; }
-    .btn-danger { background: var(--red-bg); color: var(--red); padding: 16px; border-radius: 8px; border: none; font-weight: 600; }
+
+    .modal-header {
+      padding: calc(var(--safe-top) + 12px) 20px 12px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-title { font-size: 16px; font-weight: 600; }
+    .btn-text { background: none; border: none; font-size: 16px; color: var(--accent); font-weight: 500; cursor: pointer; }
+    .btn-text.cancel { color: var(--sub); font-weight: 400; }
+
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 20px calc(var(--safe-bottom) + 40px);
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* ── FORM ELEMENTS ── */
+    .form-group { display: flex; flex-direction: column; gap: 8px; }
+    .form-label { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; }
+    
+    /* Input font-size MUST be 16px to prevent iOS Safari auto-zoom */
+    .input-field {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 16px; 
+      line-height: 1.5;
+      width: 100%;
+      outline: none;
+      resize: none; /* For textareas */
+      transition: border-color 0.2s;
+    }
+    .input-field:focus { border-color: var(--accent); }
+    .input-field::placeholder { color: #484F58; }
+
+    /* Custom Toggle Switch for Priority */
+    .toggle-row { display: flex; justify-content: space-between; align-items: center; background: var(--bg-elevated); padding: 14px; border-radius: 8px; border: 1px solid var(--border); }
+    .toggle-label { font-size: 16px; font-weight: 500; }
+    .switch { position: relative; display: inline-block; width: 50px; height: 30px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border); transition: .3s; border-radius: 30px; }
+    .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 4px; bottom: 4px; background-color: var(--sub); transition: .3s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--accent); }
+    input:checked + .slider:before { transform: translateX(20px); background-color: #000; }
+
+    /* Segmented Control for Status */
+    .segmented-control { display: flex; background: var(--bg-elevated); border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
+    .segment-btn {
+      flex: 1; padding: 14px 0; background: transparent; border: none; border-right: 1px solid var(--border);
+      color: var(--sub); font-family: var(--font-mono); font-size: 12px; font-weight: 600; text-transform: uppercase;
+      transition: all 0.2s;
+    }
+    .segment-btn:last-child { border-right: none; }
+    .segment-btn.active.pending { background: var(--yellow-bg); color: var(--yellow); }
+    .segment-btn.active.applied { background: var(--accent-bg); color: var(--accent); }
+    .segment-btn.active.rejected { background: var(--red-bg); color: var(--red); }
+
+    /* Contacts specific */
+    .contact-item { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; position: relative; }
+    .contact-input { background: transparent; border: none; color: var(--text); font-size: 16px; outline: none; width: 100%; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+    .contact-input:focus { border-bottom-color: var(--accent); }
+    .contact-input.notes { font-size: 14px; border-bottom: none; padding-bottom: 0; color: var(--sub); }
+    .contact-input.notes:focus { color: var(--text); }
+    .remove-contact { position: absolute; top: 12px; right: 12px; background: transparent; border: none; color: var(--sub); font-size: 18px; padding: 4px; }
+    
+    .btn-outline { background: transparent; border: 1px dashed var(--border); color: var(--sub); padding: 14px; border-radius: 8px; font-size: 14px; font-weight: 500; width: 100%; display: block; margin-top: 4px; }
+    .btn-outline:active { background: var(--bg-elevated); }
+
+    .btn-danger { background: var(--red-bg); border: 1px solid rgba(248, 81, 73, 0.4); color: var(--red); padding: 16px; border-radius: 8px; font-size: 16px; font-weight: 600; width: 100%; margin-top: 24px; }
+
+    /* URL link input group */
+    .url-group { display: flex; gap: 8px; }
+    .url-group .input-field { flex: 1; }
+    .url-open { background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text); padding: 0 16px; border-radius: 8px; display: flex; align-items: center; justify-content: center; text-decoration: none; font-weight: 500; font-size: 14px; }
+    .url-open.disabled { opacity: 0.5; pointer-events: none; }
+
   </style>
 </head>
 <body>
 
-  <div id="gumroad-lock">
-    <div class="lock-box">
-      <div style="font-family: monospace; font-size: 20px; margin-bottom: 10px;">STRATEGIC BOARD</div>
-      <input type="text" id="license-key-input" class="lock-input" placeholder="LICENSE KEY">
-      <button class="lock-btn" id="verify-btn" onclick="verifyGumroadKey()">Unlock</button>
-      <div id="lock-error" style="color: var(--red); margin-top: 10px; display: none;">Invalid key.</div>
-    </div>
-  </div>
-
   <div id="dashboard">
     <div class="app-header">
-      <div style="font-weight: 700; font-family: monospace;">STRATEGIC TARGET BOARD</div>
+      <div class="app-title">Strategic <span>Target Board</span></div>
+      <div class="metrics-row">
+        <div class="metric-pill">
+          <strong id="m-total">0</strong>
+          <span>Total Targets</span>
+        </div>
+        <div class="metric-pill action-req">
+          <strong id="m-pending">0</strong>
+          <span>Action Required</span>
+        </div>
+        <div class="metric-pill">
+          <strong id="m-priority">0</strong>
+          <span>High Priority</span>
+        </div>
+      </div>
     </div>
-    <div class="target-list" id="targetList"></div>
+
+    <div class="target-list" id="targetList">
+      </div>
+
     <button class="fab" onclick="openModal()">+</button>
   </div>
 
   <div id="edit-modal">
-    <div style="padding: 20px; display: flex; justify-content: space-between;">
-      <button onclick="closeModal()">Cancel</button>
-      <button onclick="saveTarget()">Save</button>
+    <div class="modal-header">
+      <button class="btn-text cancel" onclick="closeModal()">Cancel</button>
+      <div class="modal-title" id="modalTitle">Edit Target</div>
+      <button class="btn-text" onclick="saveTarget()">Save</button>
     </div>
-    <div class="modal-body">
+    
+    <div class="modal-body" id="modalBody">
       <input type="hidden" id="f-id">
-      <textarea id="f-target" class="input-field" placeholder="Company / Position"></textarea>
-      <input type="text" id="f-link" class="input-field" placeholder="Job Link">
-      <button class="btn-danger" onclick="deleteTarget()">Delete Target</button>
+
+      <div class="form-group">
+        <label class="form-label">Target Entity & Role</label>
+        <textarea id="f-target" class="input-field" rows="2" placeholder="e.g., IBM&#10;Assoc. Consultant" oninput="autoResize(this)"></textarea>
+      </div>
+
+      <div class="toggle-row">
+        <div class="toggle-label">High Priority</div>
+        <label class="switch">
+          <input type="checkbox" id="f-priority">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <div class="segmented-control" id="f-status-group">
+          <button class="segment-btn pending active" onclick="setStatus('pending')">Pending</button>
+          <button class="segment-btn applied" onclick="setStatus('applied')">Applied</button>
+          <button class="segment-btn rejected" onclick="setStatus('rejected')">Rejected</button>
+        </div>
+        <input type="hidden" id="f-status" value="pending">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">URL / Link</label>
+        <div class="url-group">
+          <input type="url" id="f-link" class="input-field" placeholder="https://..." oninput="updateUrlBtn()">
+          <a id="f-link-btn" class="url-open disabled" target="_blank">Open</a>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Next Execution Steps</label>
+        <textarea id="f-next" class="input-field" rows="2" placeholder="What is the immediate next action?" oninput="autoResize(this)"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Core Problem & Intel</label>
+        <textarea id="f-problem" class="input-field" rows="3" placeholder="What bottleneck are they hiring for?" oninput="autoResize(this)"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">My Fit Evidence</label>
+        <textarea id="f-fit" class="input-field" rows="3" placeholder="Metric/Tool mapping (e.g. Power BI, Causal Inference)" oninput="autoResize(this)"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Network Contacts</label>
+        <div id="f-contacts-container"></div>
+        <button class="btn-outline" onclick="addContactField()">+ Add Contact</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Comments / Notes</label>
+        <textarea id="f-comments" class="input-field" rows="2" placeholder="Ad-hoc notes..." oninput="autoResize(this)"></textarea>
+      </div>
+
+      <button id="f-delete-btn" class="btn-danger" onclick="deleteTarget()">Delete Target</button>
     </div>
   </div>
 
   <script>
-    const GUMROAD_PRODUCT_ID = "F5iQ0zfPau2H0EpW3XZmxg=="; 
-    let targets = JSON.parse(localStorage.getItem('jobBoard_Data') || '[]');
+    // --- STATE MANAGEMENT ---
+    let targets = [];
 
-    // --- LICENSE LOGIC ---
-    async function verifyGumroadKey() {
-      const key = document.getElementById('license-key-input').value.trim();
-      const btn = document.getElementById('verify-btn');
-      if (!key) return;
-      btn.innerText = "Verifying...";
-      try {
-        const response = await fetch("https://api.gumroad.com/v2/licenses/verify", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ product_id: GUMROAD_PRODUCT_ID, license_key: key })
-        });
-        const data = await response.json();
-        if (data.success && !data.purchase.refunded) {
-          localStorage.setItem('gumroad_valid_key', key);
-          unlockApp();
-        } else {
-          document.getElementById('lock-error').style.display = "block";
-        }
-      } catch (e) { alert("Network error"); }
-      btn.innerText = "Unlock";
-    }
+    // --- INITIALIZATION & MIGRATION ---
+    window.onload = () => {
+      let rawV9 = localStorage.getItem('jobBoardV9_Mobile');
+      let rawV8 = localStorage.getItem('jobBoardV8');
 
-    function unlockApp() {
-      document.getElementById('gumroad-lock').classList.add('unlocked');
+      if (rawV9) {
+        targets = JSON.parse(rawV9);
+      } else if (rawV8) {
+        // Migrate old desktop HTML data to clean mobile strings
+        let oldData = JSON.parse(rawV8);
+        targets = oldData.map(d => ({
+          id: generateId(),
+          date: d.date || getTodayString(),
+          target: parseOldHTML(d.target),
+          link: d.link || "",
+          problem: parseOldHTML(d.problem),
+          fit: parseOldHTML(d.fit),
+          contacts: d.contacts ? d.contacts.map(c => ({ name: parseOldHTML(c.name), notes: parseOldHTML(c.notes) })) : [],
+          nextSteps: parseOldHTML(d.nextSteps),
+          comments: parseOldHTML(d.comments),
+          priority: d.priority || false,
+          status: d.status || "pending"
+        }));
+        saveData(); // Save in new format
+      } else {
+        // Default Template
+        targets = [{
+          id: generateId(),
+          date: getTodayString(),
+          target: "Company & Position",
+          link: "Include links for easy reference.",
+          problem: "What kind of problems does the company deal with?",
+          fit: "My background.",
+          contacts: [{ name: "Example Name", notes: "Position of contact" }],
+          nextSteps: "30-min coffee chat tomorrow.",
+          comments: "Schedule a coffee chat with Google Meet.",
+          priority: true,
+          status: "pending"
+        }];
+        saveData();
+      }
       renderDashboard();
+    };
+
+    function parseOldHTML(htmlStr) {
+      if (!htmlStr) return "";
+      let temp = document.createElement('div');
+      temp.innerHTML = htmlStr;
+      let blocks = temp.querySelectorAll('.text-block');
+      if (blocks.length > 0) {
+        return Array.from(blocks).map(b => b.innerText.trim()).join('\n');
+      }
+      return temp.innerText.trim().replace(/\n+/g, '\n');
     }
 
-    // --- DASHBOARD LOGIC ---
+    function generateId() { return Math.random().toString(36).substr(2, 9); }
+    function getTodayString() { return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+    
+    function saveData() { localStorage.setItem('jobBoardV9_Mobile', JSON.stringify(targets)); }
+
+    // --- RENDER DASHBOARD ---
     function renderDashboard() {
       const list = document.getElementById('targetList');
       list.innerHTML = "";
-      targets.forEach(t => {
+
+      let pending = 0, applied = 0, priorityCount = 0;
+
+      // Sort: Priority first, then newest
+      let sortedTargets = [...targets].sort((a, b) => {
+        if (a.priority && !b.priority) return -1;
+        if (!a.priority && b.priority) return 1;
+        return new Date(b.date) - new Date(a.date);
+      });
+
+      sortedTargets.forEach(t => {
+        if (t.status === 'pending') pending++;
+        if (t.status === 'applied') applied++;
+        if (t.priority) priorityCount++;
+
+        // Extract first line for Title, rest for subtitle
+        let lines = t.target.split('\n');
+        let mainTitle = lines[0] || "Unnamed Target";
+        let subTitle = lines.slice(1).join(' ') || "";
+
         let card = document.createElement('div');
         card.className = 'card';
         card.onclick = () => openModal(t.id);
-        card.innerHTML = `<div class="card-title">${t.target || 'New Target'}</div>`;
+        
+        card.innerHTML = `
+          <div class="card-header">
+            <div>
+              <div class="card-title">${mainTitle}</div>
+              <div class="card-date">${subTitle ? subTitle + ' • ' : ''}Added: ${t.date}</div>
+            </div>
+            ${t.priority ? '<div class="priority-icon">★</div>' : ''}
+          </div>
+          <div class="card-body">
+            <div class="next-step-preview"><strong>Next:</strong> ${t.nextSteps || "No next steps set."}</div>
+          </div>
+          <div class="card-footer">
+            <span class="status-badge ${t.status}">${t.status}</span>
+            <span class="edit-arrow">Edit ➔</span>
+          </div>
+        `;
         list.appendChild(card);
       });
+
+      document.getElementById('m-total').innerText = targets.length;
+      document.getElementById('m-pending').innerText = pending;
+      document.getElementById('m-priority').innerText = priorityCount;
     }
 
+    // --- MODAL LOGIC ---
     function openModal(id = null) {
+      document.getElementById('edit-modal').classList.add('open');
+      document.getElementById('f-contacts-container').innerHTML = ""; // Clear contacts
+
       if (id) {
+        // Edit Existing
+        document.getElementById('modalTitle').innerText = "Edit Target";
+        document.getElementById('f-delete-btn').style.display = "block";
         let t = targets.find(x => x.id === id);
+        
         document.getElementById('f-id').value = t.id;
         document.getElementById('f-target').value = t.target;
+        document.getElementById('f-priority').checked = t.priority;
         document.getElementById('f-link').value = t.link;
+        document.getElementById('f-problem').value = t.problem;
+        document.getElementById('f-fit').value = t.fit;
+        document.getElementById('f-next').value = t.nextSteps;
+        document.getElementById('f-comments').value = t.comments;
+        
+        setStatus(t.status);
+        if(t.contacts) t.contacts.forEach(c => addContactField(c.name, c.notes));
+        
       } else {
+        // Create New
+        document.getElementById('modalTitle').innerText = "New Target";
+        document.getElementById('f-delete-btn').style.display = "none";
+        
         document.getElementById('f-id').value = "";
         document.getElementById('f-target').value = "";
+        document.getElementById('f-priority').checked = false;
         document.getElementById('f-link').value = "";
+        document.getElementById('f-problem').value = "";
+        document.getElementById('f-fit').value = "";
+        document.getElementById('f-next').value = "";
+        document.getElementById('f-comments').value = "";
+        
+        setStatus('pending');
+        addContactField(); // Give them one empty contact block
       }
-      document.getElementById('edit-modal').classList.add('open');
+
+      // Auto-resize all textareas
+      document.querySelectorAll('textarea').forEach(ta => autoResize(ta));
+      updateUrlBtn();
     }
 
-    function closeModal() { document.getElementById('edit-modal').classList.remove('open'); }
+    function closeModal() {
+      document.getElementById('edit-modal').classList.remove('open');
+    }
 
     function saveTarget() {
       let id = document.getElementById('f-id').value;
-      let data = {
-        id: id || Date.now().toString(),
-        target: document.getElementById('f-target').value,
-        link: document.getElementById('f-link').value
+      
+      // Scrape contacts
+      let contactBlocks = document.querySelectorAll('.contact-item');
+      let contactsArr = [];
+      contactBlocks.forEach(b => {
+        let n = b.querySelector('.c-name').value.trim();
+        let no = b.querySelector('.c-notes').value.trim();
+        if(n || no) contactsArr.push({ name: n, notes: no });
+      });
+
+      let targetData = {
+        target: document.getElementById('f-target').value.trim(),
+        priority: document.getElementById('f-priority').checked,
+        status: document.getElementById('f-status').value,
+        link: document.getElementById('f-link').value.trim(),
+        problem: document.getElementById('f-problem').value.trim(),
+        fit: document.getElementById('f-fit').value.trim(),
+        nextSteps: document.getElementById('f-next').value.trim(),
+        comments: document.getElementById('f-comments').value.trim(),
+        contacts: contactsArr
       };
+
       if (id) {
-        let idx = targets.findIndex(x => x.id == id);
-        targets[idx] = data;
+        // Update
+        let idx = targets.findIndex(x => x.id === id);
+        targetData.id = id;
+        targetData.date = targets[idx].date; // preserve date
+        targets[idx] = targetData;
       } else {
-        targets.push(data);
+        // Insert
+        targetData.id = generateId();
+        targetData.date = getTodayString();
+        targets.push(targetData);
       }
-      localStorage.setItem('jobBoard_Data', JSON.stringify(targets));
+
+      saveData();
       renderDashboard();
       closeModal();
     }
 
     function deleteTarget() {
       let id = document.getElementById('f-id').value;
-      targets = targets.filter(x => x.id != id);
-      localStorage.setItem('jobBoard_Data', JSON.stringify(targets));
-      renderDashboard();
-      closeModal();
+      if (confirm("Delete this target permanently?")) {
+        targets = targets.filter(x => x.id !== id);
+        saveData();
+        renderDashboard();
+        closeModal();
+      }
     }
 
-    window.onload = () => {
-      if (localStorage.getItem('gumroad_valid_key')) unlockApp();
-    };
+    // --- UI HELPERS ---
+    function autoResize(el) {
+      el.style.height = 'auto';
+      el.style.height = (el.scrollHeight) + 'px';
+    }
+
+    function setStatus(val) {
+      document.getElementById('f-status').value = val;
+      document.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector(`.segment-btn.${val}`).classList.add('active');
+    }
+
+    function updateUrlBtn() {
+      let v = document.getElementById('f-link').value.trim();
+      let btn = document.getElementById('f-link-btn');
+      if(v) {
+        btn.href = v.startsWith('http') ? v : 'https://' + v;
+        btn.classList.remove('disabled');
+      } else {
+        btn.removeAttribute('href');
+        btn.classList.add('disabled');
+      }
+    }
+
+    function addContactField(name = "", notes = "") {
+      let cont = document.getElementById('f-contacts-container');
+      let div = document.createElement('div');
+      div.className = 'contact-item';
+      div.innerHTML = `
+        <button class="remove-contact" onclick="this.parentElement.remove()">✕</button>
+        <input type="text" class="contact-input c-name" placeholder="Contact Name / Title" value="${name}">
+        <input type="text" class="contact-input notes c-notes" placeholder="Notes (e.g. Met via Gloria)" value="${notes}">
+      `;
+      cont.appendChild(div);
+    }
   </script>
 </body>
 </html>
